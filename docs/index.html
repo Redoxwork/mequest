@@ -1,0 +1,669 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MeQuest · quests that verify themselves</title>
+<meta name="description" content="A Gno.land quest board where every quest is checked by public code. Do it, tap Check me, get GNOT and a numbered soulbound card.">
+<link rel="icon" href="art/emblem.png">
+<meta property="og:title" content="MeQuest · quests that verify themselves">
+<meta property="og:image" content="art/emblem.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&amp;family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAF8F4}
+a{color:#8A6A2F}a:hover{color:#74572A}
+@keyframes mqShine{0%{background-position:-200% 0}100%{background-position:200% 0}}
+@keyframes mqTicker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@keyframes mqLine{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@keyframes mqBlink{50%{opacity:0}}
+@keyframes mqBlobA{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(60px,40px) scale(1.12)}}
+@keyframes mqBlobB{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-70px,50px) scale(1.15)}}
+@keyframes mqPulse{0%{box-shadow:0 0 0 0 rgba(21,128,61,.45)}70%{box-shadow:0 0 0 8px rgba(21,128,61,0)}100%{box-shadow:0 0 0 0 rgba(21,128,61,0)}}
+@keyframes mqAmber{0%{box-shadow:0 0 0 0 rgba(167,131,74,.5)}70%{box-shadow:0 0 0 8px rgba(167,131,74,0)}100%{box-shadow:0 0 0 0 rgba(167,131,74,0)}}
+@keyframes mqFlip{0%{opacity:0;transform:perspective(900px) rotateY(100deg) scale(.6)}60%{opacity:1;transform:perspective(900px) rotateY(-10deg) scale(1.05)}100%{transform:perspective(900px) rotateY(0) scale(1)}}
+@keyframes mqSpin{to{transform:rotate(360deg)}}
+.mq-holo{position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.55) 45%,rgba(124,58,237,.18) 52%,rgba(37,99,235,.18) 58%,transparent 72%);background-size:200% 100%;animation:mqShine 3.5s linear infinite}
+.mq-ticker{animation:mqTicker 40s linear infinite}
+.mq-line{animation:mqLine .25s ease-out both}
+.mq-cursor{animation:mqBlink 1s step-end infinite}
+.mq-blob{position:absolute;border-radius:50%;filter:blur(70px);pointer-events:none}
+.mq-a{animation:mqBlobA 18s ease-in-out infinite}.mq-b{animation:mqBlobB 22s ease-in-out infinite}
+.mq-dot-g{display:inline-block;width:8px;height:8px;border-radius:50%;background:#15803D;animation:mqPulse 2s ease-out infinite}
+.mq-dot-a{display:inline-block;width:8px;height:8px;border-radius:50%;background:#A7834A;animation:mqAmber 2s ease-out infinite}
+.mq-spin{display:inline-block;width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.3);border-top-color:#C6A66B;animation:mqSpin .8s linear infinite}
+.mq-flip{animation:mqFlip .9s cubic-bezier(.2,.8,.2,1) both}
+.app{display:flex;flex-wrap:wrap;align-items:flex-start;min-height:100vh;position:relative}
+.side{flex:0 0 256px;box-sizing:border-box;min-height:100vh;padding:22px 14px;display:flex;flex-direction:column;gap:14px;background:linear-gradient(180deg,#111111,#1A1814 60%,#111111);color:#EDE7DC;box-shadow:inset -1px 0 0 rgba(198,166,107,.25)}
+.side .nav{color:#CFC7B8}.side .nav:hover{background:#252525;color:#FFFFFF}.side .nav-on,.side .nav-on:hover{background:#C6A66B;color:#111111}.side .cnt{background:#252525;color:#CFC7B8}.side .nav-on .cnt{background:rgba(17,17,17,.15);color:#111111}.side .cnt-a{background:rgba(198,166,107,.2);color:#E6CE9F}
+.main{flex:999 1 560px;min-width:0;box-sizing:border-box;padding:28px clamp(16px,3.5vw,44px) 64px;display:flex;flex-direction:column;gap:28px}
+.topbar{display:none;flex:1 1 100%;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;background:#111111;color:#FFFFFF;box-shadow:inset 0 -1px 0 rgba(198,166,107,.3)}
+.mobilemenu{flex:1 1 100%;padding:10px 16px 16px;display:flex;flex-direction:column;gap:4px;background:rgba(255,255,255,.92);border-bottom:1px solid rgba(227,216,199,.7)}
+@media (max-width:860px){.side{display:none}.topbar{display:flex}.main{padding-top:20px}}
+@media (min-width:861px){.mobilemenu{display:none}}
+.nav{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:0 12px;border-radius:12px;border:0;background:transparent;font:500 14px Inter,sans-serif;color:#4A443D;cursor:pointer;text-align:left}
+.nav:hover{background:rgba(244,238,228,.9)}
+.nav-on,.nav-on:hover{background:#111111;color:#FAF8F4}
+.nav svg{flex-shrink:0}
+.nav-l{flex:1}
+.cnt{font:600 11px 'JetBrains Mono',monospace;padding:2px 7px;border-radius:999px;background:#F1ECE4;color:#4A443D}
+.nav-on .cnt{background:#3A342D;color:#C6A66B}
+.cnt-a{background:#F3EBDD;color:#74572A}
+.panel{background:rgba(255,255,255,.88);border:1px solid rgba(227,216,199,.9);border-radius:20px;box-shadow:0 10px 30px rgba(120,90,40,.07)}
+.eyebrow{margin:0;font:600 12px 'JetBrains Mono',monospace;letter-spacing:.08em;color:#6B645B;text-transform:uppercase}
+.h1{margin:4px 0 0;font:800 clamp(30px,4.4vw,46px)/1.05 Montserrat,sans-serif;letter-spacing:-.025em}
+.h2{margin:0;font:800 22px/1.15 Montserrat,sans-serif;letter-spacing:-.01em}
+.lede{margin:8px 0 0;font-size:16px;line-height:1.55;color:#4A443D;max-width:640px}
+.muted{color:#6B645B}
+.mono{font-family:'JetBrains Mono',monospace}
+.btn{min-height:46px;padding:0 18px;border-radius:13px;border:0;font:700 14px Inter,sans-serif;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+.btn-dark{background:#111111;color:#FAF8F4}.btn-dark:hover{background:#000;color:#FAF8F4}
+.btn-gold{background:#C6A66B;color:#111111}.btn-gold:hover{background:#B8955A;color:#111111}
+.btn-green{background:#15803D;color:#FFFFFF}
+.btn-ghost{background:rgba(255,255,255,.9);color:#111111;border:1px solid #E3D9CB}
+.btn-red{background:#FDECEC;color:#B91C1C;border:1px solid #F7C9C9}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.chip{display:inline-flex;align-items:center;gap:6px;font:600 11px 'JetBrains Mono',monospace;padding:4px 9px;border-radius:999px}
+.track{height:10px;border-radius:999px;background:#EFE7DA;box-shadow:inset 0 1px 2px rgba(60,40,10,.12);overflow:hidden}
+.mq-bar{position:relative;height:100%;border-radius:999px;transition:width .9s cubic-bezier(.2,.8,.2,1)}
+.mq-bar::after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);background-size:200% 100%;animation:mqShine 2.2s linear infinite}
+.term{background:#111111;color:#EDE6DA;border-radius:16px;padding:14px 16px;font:12.5px/1.75 'JetBrains Mono',monospace;overflow:hidden}
+.grid{display:grid;gap:14px}
+.qcard{display:flex;flex-direction:column;gap:12px;padding:18px;border-radius:20px;background:rgba(255,255,255,.9);border:1px solid rgba(227,216,199,.9);box-shadow:0 10px 30px rgba(120,90,40,.07);cursor:pointer;text-align:left;font:inherit;color:#111111;transition:transform .2s ease,box-shadow .2s ease}
+.qcard:hover{transform:translateY(-3px);box-shadow:0 18px 40px rgba(120,90,40,.12)}
+.qcard:focus-visible,.nav:focus-visible,.btn:focus-visible,.mqk:focus-visible{outline:3px solid #8A6A2F;outline-offset:2px}
+.stat{background:rgba(255,255,255,.82);padding:16px 18px 12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.mqk{position:relative;overflow:hidden;aspect-ratio:5/7;border-radius:16px;padding:10px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;background:#FFFFFF;border:2px solid #A8A29E;font:inherit;color:#111111;transition:transform .2s ease}
+button.mqk{cursor:pointer;appearance:none;-webkit-appearance:none}
+button.mqk:hover{transform:translateY(-4px) rotate(-1deg)}
+.mqk-r{position:relative;align-self:flex-start;font:600 10px 'JetBrains Mono',monospace;letter-spacing:.04em}
+.mqk-i{position:relative;width:76%;aspect-ratio:1;object-fit:contain}
+.mqk-n{position:relative;font:800 15px/1.1 Montserrat,sans-serif}
+.mqk-h{position:relative;font-size:11px;line-height:1.3;color:#4A443D}
+.mqk-c{background:linear-gradient(160deg,#F4F1EC,#FFFFFF);border-color:#A8A29E;box-shadow:0 10px 24px rgba(168,162,158,.22)}.mqk-c .mqk-r{color:#57534E}
+.mqk-r2{background:linear-gradient(160deg,#EAF1FE,#FFFFFF);border-color:#2563EB;box-shadow:0 10px 24px rgba(37,99,235,.18)}.mqk-r2 .mqk-r{color:#1D4ED8}
+.mqk-e{background:linear-gradient(160deg,#F1EAFE,#FFFFFF);border-color:#7C3AED;box-shadow:0 10px 24px rgba(124,58,237,.18)}.mqk-e .mqk-r{color:#6D28D9}
+.mqk-l{background:linear-gradient(160deg,#F3EBDD,#FFF8EA);border-color:#B8955A;box-shadow:0 12px 30px rgba(217,142,30,.3)}.mqk-l .mqk-r{color:#74572A}
+.mqk-lock{filter:grayscale(1);opacity:.45;box-shadow:none}
+.tab{min-height:42px;padding:0 15px;border-radius:999px;font:600 13px Inter,sans-serif;cursor:pointer;border:1px solid #E3D9CB;background:rgba(255,255,255,.9);color:#111111}
+.tab-on{border-color:#111111;background:#111111;color:#FAF8F4}
+.field{min-height:46px;padding:0 14px;border-radius:12px;border:1px solid #D9CFC0;background:#FFFFFF;font:15px Inter,sans-serif;color:#111111;width:100%;box-sizing:border-box}
+.lbl{font-size:13px;font-weight:700}
+.row{display:flex;align-items:center;gap:12px;padding:14px 16px}
+.rule{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.75);border:1px solid rgba(227,216,199,.9);font-size:13px;line-height:1.45;color:#4A443D}
+.rule strong{color:#111111}
+.rule-i{flex-shrink:0;min-width:34px;height:34px;padding:0 6px;box-sizing:border-box;border-radius:10px;background:#111111;color:#C6A66B;display:flex;align-items:center;justify-content:center;font:700 12px 'JetBrains Mono',monospace}
+@media (prefers-reduced-motion:reduce){.mq-holo,.mq-ticker,.mq-line,.mq-cursor,.mq-a,.mq-b,.mq-dot-g,.mq-dot-a,.mq-spin,.mq-flip,.mq-bar::after{animation:none}.mq-bar,.qcard,.mqk{transition:none}}
+
+.mq-holo-e{background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.5) 45%,rgba(124,58,237,.22) 55%,transparent 72%);background-size:200% 100%;animation:mqShine 4.5s linear infinite}
+.mqk-r2{box-shadow:0 10px 24px rgba(37,99,235,.18),0 0 0 1px rgba(37,99,235,.15),0 0 18px rgba(37,99,235,.18)}
+.mqk-lock{filter:none;opacity:1;box-shadow:none;background:#EEEAE3;border-color:#CFC6B8;border-style:dashed}
+.mqk-lock .mqk-i{filter:brightness(0) opacity(.18)}
+.mqk-lock .mqk-n,.mqk-lock .mqk-r{color:#8C8478}
+button.chip{border:0;cursor:pointer}
+.side{position:sticky;top:0;align-self:flex-start;max-height:100vh;overflow-y:auto}
+dl dd{overflow-wrap:anywhere}
+</style>
+
+</head>
+<body>
+<div id="root"></div>
+<template id="tpl">
+<div style="min-height: 100vh; position: relative; overflow: hidden; background: #FAF8F4; color: #111111; font-family: Inter, system-ui, sans-serif">
+<div aria-hidden="true" style="position: absolute; inset: 0; overflow: hidden; pointer-events: none">
+<div class="mq-blob mq-a" style="width: 520px; height: 520px; top: -140px; right: 2%; background: rgba(198,166,107,.38)"></div>
+<div class="mq-blob mq-b" style="width: 460px; height: 460px; top: 220px; right: 30%; background: rgba(196,181,253,.36)"></div>
+<div class="mq-blob mq-a" style="width: 480px; height: 480px; top: 1100px; left: 10%; background: rgba(253,186,140,.26)"></div>
+<div class="mq-blob mq-b" style="width: 520px; height: 520px; top: 1900px; right: 0; background: rgba(147,197,253,.22)"></div>
+</div>
+<div aria-hidden="true" style="position: absolute; inset: 0; pointer-events: none; background-image: radial-gradient(#E3D8C7 1px, transparent 1.3px); background-size: 22px 22px; -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,.85), rgba(0,0,0,.3) 40%, rgba(0,0,0,.5) 80%, rgba(0,0,0,.25)); mask-image: linear-gradient(180deg, rgba(0,0,0,.85), rgba(0,0,0,.3) 40%, rgba(0,0,0,.5) 80%, rgba(0,0,0,.25))"></div>
+
+<div class="app">
+
+<div class="topbar">
+<button type="button" class="btn" onClick="{{ toggleMenu }}" aria-label="{{ menuLabel }}" style="min-width: 46px; padding: 0 12px; background: #252525; color: #FFFFFF">
+<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+</button>
+<span style="display: flex; align-items: center; gap: 8px; font: 800 20px Montserrat, sans-serif; color: #FFFFFF"><img src="art/emblem.png" alt="" style="width: 34px; height: 34px; object-fit: contain"><span>Me<span style="color: #C6A66B">Q</span>uest</span></span>
+<button type="button" class="chip" onClick="{{ walletAction }}" style="{{ wallet.chipStyle }}"><span class="{{ wallet.dot }}"></span>{{ wallet.chip }}</button>
+</div>
+<sc-if value="{{ menuOpen }}" hint-placeholder-val="{{ false }}">
+<nav class="mobilemenu" aria-label="Main menu">
+<sc-for list="{{ nav }}" as="n" hint-placeholder-count="9">
+<button type="button" class="{{ n.cls }}" onClick="{{ n.go }}" aria-current="{{ n.current }}">
+<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{ n.icon }}"></path></svg>
+<span class="nav-l">{{ n.label }}</span>
+<sc-if value="{{ n.hasCount }}" hint-placeholder-val="{{ false }}"><span class="{{ n.cntCls }}">{{ n.count }}</span></sc-if>
+</button>
+</sc-for>
+</nav>
+</sc-if>
+
+<aside class="side" aria-label="Sidebar">
+<button type="button" onClick="{{ goHome }}" aria-label="MeQuest home" style="display: flex; align-items: center; gap: 10px; padding: 4px 6px; border: 0; background: transparent; cursor: pointer; text-align: left">
+<img src="art/emblem.png" alt="" style="width: 46px; height: 46px; object-fit: contain">
+<span style="display: flex; flex-direction: column; gap: 2px">
+<span style="font: 800 23px Montserrat, sans-serif; letter-spacing: -.02em; color: #FFFFFF">Me<span style="color: #C6A66B">Q</span>uest</span>
+<span style="font: 600 8.5px Montserrat, sans-serif; letter-spacing: .22em; color: #A99F8E">DISCOVERY · IDENTITY · EXPLORATION</span>
+</span>
+</button>
+<div style="height: 1px; background: linear-gradient(90deg, rgba(198,166,107,0), rgba(198,166,107,.5), rgba(198,166,107,0))"></div>
+<button type="button" onClick="{{ walletAction }}" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; background: #1F1D1A; border: 1px solid rgba(198,166,107,.25); width: 100%; text-align: left; cursor: pointer; font: inherit">
+<span style="width: 34px; height: 34px; border-radius: 50%; background: #C6A66B; color: #111111; display: flex; align-items: center; justify-content: center; font: 800 14px Montserrat, sans-serif">{{ me.initial }}</span>
+<div style="min-width: 0">
+<p style="margin: 0; font-weight: 700; font-size: 14px; color: #FFFFFF">{{ me.display }}</p>
+<p class="mono" style="margin: 0; font-size: 11px; color: #A99F8E"><span class="{{ wallet.dot }}"></span> {{ me.line }}</p>
+</div>
+</button>
+<nav aria-label="Main menu" style="display: flex; flex-direction: column; gap: 3px">
+<sc-for list="{{ nav }}" as="n" hint-placeholder-count="9">
+<button type="button" class="{{ n.cls }}" onClick="{{ n.go }}" aria-current="{{ n.current }}">
+<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{ n.icon }}"></path></svg>
+<span class="nav-l">{{ n.label }}</span>
+<sc-if value="{{ n.hasCount }}" hint-placeholder-val="{{ false }}"><span class="{{ n.cntCls }}">{{ n.count }}</span></sc-if>
+</button>
+</sc-for>
+</nav>
+<div style="margin-top: 6px; padding: 14px; border-radius: 16px; background: linear-gradient(160deg, rgba(198,166,107,.22), rgba(198,166,107,.05)); border: 1px solid rgba(198,166,107,.35); color: #FAF8F4; display: flex; flex-direction: column; gap: 8px">
+<p class="mono" style="margin: 0; font-size: 11px; letter-spacing: .08em; color: #C6A66B">SEASON 1 ENDS IN</p>
+<p style="margin: 0; font: 800 22px Montserrat, sans-serif">{{ countdown }}</p>
+<p style="margin: 0; font-size: 12px; color: #D8CFC2">You're <strong style="color: #C6A66B">#{{ myRank }}</strong> · {{ ownedCount }} cards</p>
+</div>
+<div style="padding: 12px 14px; border-radius: 16px; background: #1F1D1A; border: 1px solid rgba(198,166,107,.2); display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between; font-size: 12px"><span style="color: #A99F8E">Claims today</span><strong style="color: #FFFFFF">{{ claimsToday }} / 10</strong></div>
+<div class="track" style="height: 7px; background: #2E2B26; box-shadow: none"><div class="mq-bar" style="{{ capBar }}"></div></div>
+</div>
+</aside>
+
+<main class="main">
+<sc-if value="{{ toast.show }}" hint-placeholder-val="{{ false }}"><div role="status" aria-live="polite" style="{{ toast.style }}"><span style="flex: 1">{{ toast.text }}</span><sc-if value="{{ toast.hasAction }}" hint-placeholder-val="{{ false }}"><button type="button" class="btn btn-dark" onClick="{{ toast.action }}" style="min-height: 36px">{{ toast.actionLabel }}</button></sc-if><button type="button" onClick="{{ toast.close }}" aria-label="Dismiss" style="border: 0; background: transparent; font: 700 18px Inter, sans-serif; cursor: pointer; color: inherit; min-width: 32px; min-height: 32px">×</button></div></sc-if>
+
+<!-- ================= HOME ================= -->
+<sc-if value="{{ pg.home }}" hint-placeholder-val="{{ true }}">
+<section style="display: flex; flex-wrap: wrap; gap: 28px; align-items: center">
+<div style="flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<span class="chip" style="background: #E8F3EA; color: #166534; border: 1px solid #B9DCC1"><span class="mq-dot-g"></span>live on the onyx-1 testnet</span>
+<span class="chip" style="background: #F3EBDD; color: #74572A; border: 1px solid #E2D2B5">Season 1 · {{ countdown }} left</span>
+<span class="chip" style="background: #111111; color: #C6A66B; letter-spacing: .14em">DISCOVERY · IDENTITY · EXPLORATION</span>
+</div>
+<h1 style="margin: 0; font: 800 clamp(42px, 6vw, 70px)/.98 Montserrat, sans-serif; letter-spacing: -.035em">Quests that<br><span style="color: #8A6A2F">verify themselves.</span></h1>
+<p class="lede" style="font-size: 18px">Every quest is paid by public Gno code. Do it, tap Check me, get GNOT and a numbered badge card. No screenshots, no trust, no waiting on a mod.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 10px">
+<button type="button" class="btn btn-dark" onClick="{{ goQuests }}" style="min-height: 52px; padding: 0 24px">Browse quests</button>
+<button type="button" class="btn btn-ghost" onClick="{{ goCases }}" style="min-height: 52px; padding: 0 24px">Try to cheat it</button>
+</div>
+</div>
+<div style="flex: 1 1 340px; min-width: 0; display: flex; flex-direction: column; gap: 12px; align-items: center">
+<div style="position: relative; width: 100%; max-width: 380px; height: 260px">
+<img src="art/emblem.png" alt="" aria-hidden="true" style="position: absolute; left: 50%; top: 50%; width: 300px; height: 300px; transform: translate(-50%, -50%); opacity: .16; filter: blur(.5px)">
+<div class="mqk mqk-r2" style="position: absolute; left: 0; top: 30px; width: 150px; transform: rotate(-10deg)"><span class="mqk-r">RARE</span><img class="mqk-i" src="{{ art.realm }}" alt=""><span class="mqk-n">First Realm</span></div>
+<div class="mqk mqk-e" style="position: absolute; right: 0; top: 30px; width: 150px; transform: rotate(10deg)"><span class="mq-holo mq-holo-e"></span><span class="mqk-r">EPIC</span><img class="mqk-i" src="{{ art.builder }}" alt=""><span class="mqk-n">Realm Builder</span></div>
+<div class="mqk mqk-l" style="position: absolute; left: 50%; top: 0; width: 170px; transform: translateX(-50%)"><span class="mq-holo"></span><span class="mqk-r">LEGENDARY</span><img class="mqk-i" src="{{ art.champ }}" alt=""><span class="mqk-n">Season Champion</span></div>
+</div>
+<div role="img" aria-label="Proof log replay" class="term" style="width: 100%; max-width: 420px; height: 150px; box-sizing: border-box">
+<sc-for list="{{ heroLines }}" as="l" hint-placeholder-count="2"><div class="mq-line" style="{{ l.style }}">{{ l.text }}</div></sc-for>
+<span class="mq-cursor" style="color: #A79E91">_</span>
+</div>
+</div>
+</section>
+
+<section aria-label="On-chain numbers" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: rgba(227,216,199,.7); border: 1px solid rgba(227,216,199,.9); border-radius: 22px; overflow: hidden; box-shadow: 0 24px 60px rgba(120,90,40,.10)">
+<sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+<div class="stat">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px"><span class="eyebrow" style="font-size: 11px">{{ s.label }}</span><span style="{{ s.dotStyle }}"></span></div>
+<div style="display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap"><span style="{{ s.numStyle }}">{{ s.shown }}</span><span class="chip" style="background: #E8F3EA; color: #166534">{{ s.deltaText }}</span></div>
+<svg viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true" style="width: 100%; height: 28px; display: block"><polygon points="{{ s.area }}" fill="{{ s.fill }}"></polygon><polyline points="{{ s.line }}" fill="none" stroke="{{ s.c }}" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline></svg>
+</div>
+</sc-for>
+</section>
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: -16px" class="mono muted"><span style="font-size: 11px">live from {{ realmPath }}</span><span style="font-size: 11px"><span class="mq-dot-g"></span> synced {{ syncAgo }}</span></div>
+
+<div aria-label="Recent activity" style="overflow: hidden; padding: 12px 0; margin: 0 -8px; -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)">
+<div class="mq-ticker" style="display: flex; gap: 34px; width: max-content">
+<sc-for list="{{ feed }}" as="f" hint-placeholder-count="8">
+<span style="display: flex; align-items: center; gap: 9px; font-size: 14px; white-space: nowrap; color: #4A443D"><span style="width: 8px; height: 8px; border-radius: 50%; background: #15803D"></span><strong style="color: #111111">{{ f.who }}</strong> verified {{ f.what }} <strong style="color: #8A6A2F">+{{ f.gnot }} GNOT</strong><span class="chip" style="{{ f.rarStyle }}">{{ f.rarity }}</span></span>
+</sc-for>
+</div>
+</div>
+
+<section style="display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; align-items: end; gap: 10px; flex-wrap: wrap"><h2 class="h2">Featured quests</h2><button type="button" class="btn btn-ghost" onClick="{{ goQuests }}">All {{ questCount }} quests →</button></div>
+<div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(250px, 1fr))">
+<sc-for list="{{ featured }}" as="q" hint-placeholder-count="3">
+<button type="button" class="qcard" onClick="{{ q.open }}">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px"><span class="chip" style="{{ q.kindStyle }}">{{ q.kindLabel }}</span><img src="{{ q.art }}" alt="" style="width: 44px; height: 44px; object-fit: contain"></div>
+<span style="font: 800 19px/1.2 Montserrat, sans-serif">{{ q.title }}</span>
+<span style="font: 800 22px Montserrat, sans-serif; color: #8A6A2F">{{ q.reward }} GNOT <span class="muted" style="font: 500 12px Inter, sans-serif">per claim</span></span>
+</button>
+</sc-for>
+</div>
+</section>
+
+<section class="grid" style="grid-template-columns: repeat(auto-fit, minmax(230px, 1fr))">
+<button type="button" class="qcard" onClick="{{ goLearn }}"><span class="eyebrow">New here?</span><span class="h2">Learn Gno, get paid</span><span class="muted" style="font-size: 14px">5 quests from zero to your first realm. {{ learnDone }} of 5 done.</span></button>
+<button type="button" class="qcard" onClick="{{ goCollection }}"><span class="eyebrow">Collect</span><span class="h2">17 numbered cards</span><span class="muted" style="font-size: 14px">You own {{ ownedCount }}. Soulbound, numbered, and the Legendary is capped at 10.</span></button>
+<button type="button" class="qcard" onClick="{{ goPost }}" style="background: #111111; color: #FAF8F4; border-color: #111111"><span class="eyebrow" style="color: #C6A66B">For Gno projects</span><span class="h2">Need real users? Post a quest.</span><span style="font-size: 14px; color: #D8CFC2">Lock GNOT, pick a check, get users who actually did it.</span></button>
+</section>
+</sc-if>
+
+<!-- ================= QUESTS ================= -->
+<sc-if value="{{ pg.quests }}" hint-placeholder-val="{{ false }}">
+<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 14px">
+<div><p class="eyebrow">The tavern board</p><h1 class="h1">Open quests</h1><p class="lede">Built-in checks pay instantly. Partner quests pay when the partner's realm reports you. Social quests pay after the project approves your post.</p></div>
+<span class="chip" style="background: #E8F3EA; color: #166534; min-height: 34px; padding: 0 12px"><span class="mq-dot-g"></span>pools synced {{ syncAgo }}</span>
+</header>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{ filters }}" as="t" hint-placeholder-count="4"><button type="button" class="{{ t.cls }}" onClick="{{ t.pick }}">{{ t.label }}</button></sc-for>
+</div>
+<div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(270px, 1fr))">
+<sc-if value="{{ noQuests }}" hint-placeholder-val="{{ false }}"><p class="panel muted" style="margin: 0; padding: 24px; text-align: center">{{ emptyQuests }}</p></sc-if>
+<sc-for list="{{ quests }}" as="q" hint-placeholder-count="6">
+<button type="button" class="qcard" onClick="{{ q.open }}">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px">
+<span class="chip" style="{{ q.kindStyle }}">{{ q.kindLabel }}</span>
+<sc-if value="{{ q.hasStatus }}" hint-placeholder-val="{{ false }}"><span class="chip" style="{{ q.statusStyle }}">{{ q.statusLabel }}</span></sc-if>
+<sc-if value="{{ q.lowNoStatus }}" hint-placeholder-val="{{ false }}"><span class="chip" style="background: #FDECEC; color: #B91C1C">almost gone</span></sc-if><span class="chip" style="{{ q.rarChip }}">{{ q.rarity }}</span>
+</div>
+<div style="display: flex; gap: 12px; align-items: center">
+<img src="{{ q.art }}" alt="" style="width: 52px; height: 52px; object-fit: contain; flex-shrink: 0">
+<div style="min-width: 0"><span style="display: block; font: 800 18px/1.2 Montserrat, sans-serif">{{ q.title }}</span><span class="mono muted" style="font-size: 11px">{{ q.check }}</span></div>
+</div>
+<div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 8px; padding-top: 10px; border-top: 1px dashed #E3D8C7">
+<div><span class="mono muted" style="font-size: 10px">PER CLAIM</span><br><span style="font: 800 22px/1 Montserrat, sans-serif; color: #8A6A2F">{{ q.reward }} <span style="font-size: 13px">GNOT</span></span></div>
+<div style="text-align: right"><span class="mono muted" style="font-size: 10px">POOL LEFT</span><br><strong style="font-size: 14px">{{ q.poolLeft }}</strong> <span class="muted" style="font-size: 12px">/ {{ q.poolTotal }}</span></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 5px">
+<div style="display: flex; justify-content: space-between; font-size: 12px; color: #4A443D"><span>{{ q.claimedLabel }}</span><strong>{{ q.pct }}%</strong></div>
+<div class="track"><div class="mq-bar" style="{{ q.barStyle }}"></div></div>
+</div>
+</button>
+</sc-for>
+</div>
+<div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(210px, 1fr))" aria-label="Fair play rules">
+<div class="rule"><span class="rule-i">1×</span><span><strong>One claim per wallet</strong> on every quest.</span></div>
+<div class="rule"><span class="rule-i">10</span><span><strong>Up to 10 claims a day</strong> per wallet, so bots can't drain pools.</span></div>
+<div class="rule"><span class="rule-i">◔</span><span><strong>Fixed pools.</strong> Closes when slots run out. Unclaimed GNOT goes back.</span></div>
+<div class="rule"><span class="rule-i">✓</span><span><strong>Social quests</strong> pay after the project approves.</span></div>
+</div>
+</sc-if>
+
+<!-- ================= QUEST DETAIL ================= -->
+<sc-if value="{{ pg.quest }}" hint-placeholder-val="{{ false }}">
+<button type="button" class="btn btn-ghost" onClick="{{ goQuests }}" style="align-self: flex-start">← All quests</button>
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+<div style="flex: 999 1 480px; min-width: 0; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; gap: 16px; align-items: center">
+<img src="{{ q1.art }}" alt="" style="width: 84px; height: 84px; object-fit: contain; flex-shrink: 0">
+<div style="min-width: 0">
+<span class="chip" style="{{ q1.kindStyle }}">{{ q1.kindLabel }}</span>
+<h1 class="h1" style="margin-top: 6px">{{ q1.title }}</h1>
+</div>
+</div>
+<p class="lede" style="margin: 0">{{ q1.desc }}</p>
+<div class="grid" style="grid-template-columns: repeat(3, minmax(0, 1fr))">
+<div class="panel" style="padding: 12px 14px"><span class="mono muted" style="font-size: 10px">PER CLAIM</span><br><strong style="font: 800 22px Montserrat, sans-serif; color: #8A6A2F">{{ q1.reward }} GNOT</strong></div>
+<div class="panel" style="padding: 12px 14px"><span class="mono muted" style="font-size: 10px">POOL LEFT</span><br><strong style="font: 800 22px Montserrat, sans-serif">{{ q1.poolLeft }}</strong></div>
+<div class="panel" style="padding: 12px 14px"><span class="mono muted" style="font-size: 10px">ENDS</span><br><strong style="font: 800 22px Montserrat, sans-serif">{{ q1.ends }}</strong></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap"><h2 class="h2" style="font-size: 18px">{{ q1.ruleTitle }}</h2><span class="mono muted" style="font-size: 11px">public · anyone can read it</span></div>
+<pre class="term" style="margin: 0; white-space: pre-wrap; font-size: 13px">{{ q1.code }}</pre>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h2 class="h2" style="font-size: 18px">Proof log</h2>
+<div role="log" aria-live="polite" class="term" style="min-height: 168px">
+<sc-if value="{{ logIdle }}" hint-placeholder-val="{{ true }}"><div style="color: #A79E91">$ waiting<span class="mq-cursor">_</span></div></sc-if>
+<sc-for list="{{ logLines }}" as="l" hint-placeholder-count="0"><div class="mq-line" style="{{ l.style }}">{{ l.text }}</div></sc-for>
+</div>
+</div>
+</div>
+
+<aside class="panel" style="flex: 1 1 300px; min-width: 0; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+<p class="eyebrow">You'll get</p>
+<div style="display: flex; gap: 14px; align-items: center">
+<div class="{{ q1.cardCls }}" style="width: 110px; flex: none"><span class="mqk-r">{{ q1.rarityUp }}</span><img class="mqk-i" src="{{ q1.art }}" alt=""><span class="mqk-n" style="font-size: 12px">{{ q1.cardName }}</span></div>
+<div><strong style="font: 800 26px Montserrat, sans-serif; color: #8A6A2F">{{ q1.reward }} GNOT</strong><br><span class="muted" style="font-size: 14px">+ {{ q1.rarity }} card</span></div>
+</div>
+<div style="{{ statusBox }}"><span style="{{ statusDot }}"></span><span>{{ statusText }}</span></div>
+
+<sc-if value="{{ act.check }}" hint-placeholder-val="{{ true }}"><button type="button" class="btn btn-gold" onClick="{{ doCheck }}" style="min-height: 54px; font-size: 16px">Check me</button></sc-if>
+<sc-if value="{{ act.checking }}" hint-placeholder-val="{{ false }}"><button type="button" class="btn btn-dark" disabled="{{ true }}" style="min-height: 54px"><span class="mq-spin"></span>Verifying on-chain…</button></sc-if>
+<sc-if value="{{ act.claim }}" hint-placeholder-val="{{ false }}"><button type="button" class="btn btn-green" onClick="{{ doClaim }}" style="min-height: 54px; font-size: 16px">Verified · open your card</button></sc-if>
+<sc-if value="{{ act.retry }}" hint-placeholder-val="{{ false }}"><button type="button" class="btn btn-red" onClick="{{ doRetry }}" style="min-height: 54px">Retry check</button></sc-if>
+<sc-if value="{{ act.partner }}" hint-placeholder-val="{{ false }}">
+<p style="margin: 0; font-size: 13px; line-height: 1.5; color: #4A443D">{{ q1.partnerHelp }}</p>
+<button type="button" class="btn btn-dark" onClick="{{ doPartnerStart }}" style="min-height: 54px">{{ q1.partnerCta }}</button>
+</sc-if>
+<sc-if value="{{ act.partnerWait }}" hint-placeholder-val="{{ false }}">
+<p style="margin: 0; font-size: 13px; color: #6D28D9">Watching the chain · this page refreshes by itself.</p>
+</sc-if>
+<sc-if value="{{ act.social }}" hint-placeholder-val="{{ false }}">
+<form onSubmit="{{ doSubmit }}" style="display: flex; flex-direction: column; gap: 8px">
+<label class="lbl" for="postlink">Paste your post link</label>
+<p class="muted" style="margin: 0; font-size: 12px">Include your code <strong class="mono" style="color: #111111">{{ myCode }}</strong> in the post.</p>
+<input id="postlink" class="field" type="url" placeholder="https://x.com/you/status/…" value="{{ postLink }}" onChange="{{ setPostLink }}">
+<button type="submit" class="btn btn-dark" style="min-height: 50px">Submit for review</button>
+</form>
+</sc-if>
+<sc-if value="{{ act.done }}" hint-placeholder-val="{{ false }}"><button type="button" class="btn btn-ghost" onClick="{{ goPassport }}" style="min-height: 50px">See it in your passport</button></sc-if>
+<sc-if value="{{ act.capped }}" hint-placeholder-val="{{ false }}"><p role="status" style="margin: 0; padding: 10px 12px; border-radius: 12px; background: #FDECEC; color: #B91C1C; font-size: 13px">Daily limit reached (10 claims). Come back tomorrow.</p></sc-if>
+
+<sc-if value="{{ fix.show }}" hint-placeholder-val="{{ false }}"><button type="button" class="btn btn-gold" onClick="{{ fix.run }}" style="min-height: 50px">{{ fix.label }}</button></sc-if>
+<sc-if value="{{ quiz.show }}" hint-placeholder-val="{{ false }}">
+<form onSubmit="{{ quiz.submit }}" style="display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 14px; background: #F1EAFE">
+<span class="mono" style="font-size: 11px; color: #6D28D9">LESSON {{ quiz.n }} OF 3 · mqlearn realm</span>
+<label class="lbl" for="quizans">{{ quiz.q }}</label>
+<input id="quizans" class="field" type="text" autocomplete="off" placeholder="Your answer" value="{{ quiz.answer }}" onChange="{{ quiz.set }}">
+<button type="submit" class="btn btn-dark" style="min-height: 48px">Send answer on-chain</button>
+<span class="muted" style="font-size: 12px">Pass lesson 3 and the mqlearn realm calls MeQuest for you.</span>
+</form>
+</sc-if>
+<sc-if value="{{ needWallet }}" hint-placeholder-val="{{ false }}"><button type="button" class="btn btn-dark" onClick="{{ walletAction }}" style="min-height: 50px">{{ wallet.cta }}</button></sc-if>
+<ul style="margin: 0; padding: 0 0 0 18px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #4A443D; line-height: 1.45">
+<li>One claim per wallet · {{ claimsToday }}/10 claims used today</li>
+<li>Reward locked up front by the project</li>
+<li>Unclaimed GNOT goes back to the project after {{ q1.ends }}</li>
+</ul>
+</aside>
+</div>
+</sc-if>
+
+<!-- ================= MY QUESTS ================= -->
+<sc-if value="{{ pg.my }}" hint-placeholder-val="{{ false }}">
+<header><p class="eyebrow">Your progress</p><h1 class="h1">My quests</h1><p class="lede">Everything you've started, waiting on, finished, or need to fix. Pending items update the moment a partner reports or a project approves.</p></header>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{ myTabs }}" as="mt" hint-placeholder-count="4"><button type="button" class="{{ mt.cls }}" onClick="{{ mt.pick }}">{{ mt.label }} · {{ mt.n }}</button></sc-for>
+</div>
+<div class="panel" style="overflow: hidden">
+<sc-if value="{{ myEmpty }}" hint-placeholder-val="{{ false }}"><p class="muted" style="margin: 0; padding: 28px; text-align: center">Nothing here right now.</p></sc-if>
+<sc-for list="{{ myList }}" as="m" hint-placeholder-count="4">
+<div class="row" style="{{ m.rowStyle }}">
+<img src="{{ m.art }}" alt="" style="width: 46px; height: 46px; object-fit: contain; flex-shrink: 0">
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+<strong style="font-size: 15px">{{ m.title }}</strong>
+<span style="font-size: 13px; color: #4A443D">{{ m.detail }}</span>
+<sc-if value="{{ m.hasBar }}" hint-placeholder-val="{{ false }}"><div class="track" style="height: 6px; max-width: 220px"><div class="mq-bar" style="{{ m.barStyle }}"></div></div></sc-if>
+</div>
+<span class="chip" style="{{ m.chipStyle }}"><span style="{{ m.dotStyle }}"></span>{{ m.chip }}</span>
+<sc-if value="{{ m.hasAction }}" hint-placeholder-val="{{ false }}"><button type="button" class="btn btn-ghost" onClick="{{ m.action }}" style="min-height: 40px; padding: 0 12px; font-size: 13px">{{ m.actionLabel }}</button></sc-if>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<!-- ================= LEADERBOARD ================= -->
+<sc-if value="{{ pg.board }}" hint-placeholder-val="{{ false }}">
+<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 16px">
+<div><p class="eyebrow" style="color: #8A6A2F">Season 1 leaderboard</p><h1 class="h1">Top questers</h1><p class="lede">Ranked by card points: Common 10, Rare 50, Epic 200, Legendary 1000. The top 3 get the Season Champion card.</p></div>
+<div role="timer" aria-label="Time left in season" style="display: flex; gap: 6px">
+<sc-for list="{{ clock }}" as="u" hint-placeholder-count="4"><div style="min-width: 58px; padding: 9px 6px; border-radius: 13px; background: #111111; color: #FAF8F4; text-align: center"><div style="font: 800 22px Montserrat, sans-serif">{{ u.v }}</div><div class="mono" style="font-size: 10px; color: #D8CFC2">{{ u.l }}</div></div></sc-for>
+</div>
+</header>
+<div style="position: relative; max-width: 720px; width: 100%; margin: 0 auto; padding-top: 20px">
+<div aria-hidden="true" style="position: absolute; left: 50%; top: 0; width: 400px; height: 300px; transform: translateX(-50%); background: radial-gradient(closest-side, rgba(198,166,107,.42), rgba(198,166,107,0))"></div>
+<ol style="position: relative; margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(6px, 2vw, 14px); align-items: end">
+<li style="display: flex; flex-direction: column; align-items: center; gap: 7px; min-width: 0"><img src="{{ podium.b.art }}" alt="{{ podium.b.alt }}" style="width: 50px; height: 50px; object-fit: contain; transform: rotate(-8deg)"><span style="width: 58px; height: 58px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font: 800 22px Montserrat, sans-serif; background: #FFFFFF; border: 4px solid #94A3B8">{{ podium.b.initial }}</span><strong>{{ podium.b.name }}</strong><span class="muted" style="font-size: 12px; text-align: center">{{ podium.b.line }}</span><div style="width: 100%; height: 124px; border-radius: 14px 14px 4px 4px; background: linear-gradient(180deg, #F1F5F9, #CBD5E1); border: 1.5px solid #94A3B8; box-shadow: inset 0 6px 0 rgba(255,255,255,.8); display: flex; flex-direction: column; align-items: center; padding-top: 10px; box-sizing: border-box"><span style="font: 800 clamp(30px, 5vw, 42px)/1 Montserrat, sans-serif; color: #475569">2</span><span class="mono" style="font-size: 10px; color: #475569; letter-spacing: .1em">SILVER</span></div></li>
+<li style="display: flex; flex-direction: column; align-items: center; gap: 7px; min-width: 0"><img src="{{ podium.a.art }}" alt="{{ podium.a.alt }}" style="width: 62px; height: 62px; object-fit: contain"><div style="position: relative"><svg aria-hidden="true" width="40" height="28" viewBox="0 0 40 28" style="position: absolute; left: 50%; top: -24px; transform: translateX(-50%)"><path d="M3 24 L6 6 L14 14 L20 2 L26 14 L34 6 L37 24 Z" fill="#C6A66B" stroke="#74572A" stroke-width="2" stroke-linejoin="round"/></svg><span style="width: 74px; height: 74px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font: 800 28px Montserrat, sans-serif; background: #FFFFFF; border: 4px solid #B8955A; box-shadow: 0 0 0 6px rgba(198,166,107,.25)">{{ podium.a.initial }}</span></div><strong style="font-size: 17px">{{ podium.a.name }}</strong><span class="muted" style="font-size: 12px; text-align: center">{{ podium.a.line }}</span><div style="position: relative; overflow: hidden; width: 100%; height: 170px; border-radius: 14px 14px 4px 4px; background: linear-gradient(180deg, #FDE9B8, #F0B34A); border: 1.5px solid #B8955A; box-shadow: inset 0 6px 0 rgba(255,255,255,.7); display: flex; flex-direction: column; align-items: center; padding-top: 10px; box-sizing: border-box"><span class="mq-holo"></span><span style="font: 800 clamp(36px, 6vw, 54px)/1 Montserrat, sans-serif; color: #7C2D12">1</span><span class="mono" style="font-size: 10px; color: #7C2D12; letter-spacing: .1em">CHAMPION</span></div></li>
+<li style="display: flex; flex-direction: column; align-items: center; gap: 7px; min-width: 0"><img src="{{ podium.c.art }}" alt="{{ podium.c.alt }}" style="width: 50px; height: 50px; object-fit: contain; transform: rotate(8deg)"><span style="width: 54px; height: 54px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font: 800 20px Montserrat, sans-serif; background: #FFFFFF; border: 4px solid #B0723F">{{ podium.c.initial }}</span><strong>{{ podium.c.name }}</strong><span class="muted" style="font-size: 12px; text-align: center">{{ podium.c.line }}</span><div style="width: 100%; height: 92px; border-radius: 14px 14px 4px 4px; background: linear-gradient(180deg, #F6E4D4, #D9A57A); border: 1.5px solid #B0723F; box-shadow: inset 0 6px 0 rgba(255,255,255,.7); display: flex; flex-direction: column; align-items: center; padding-top: 8px; box-sizing: border-box"><span style="font: 800 clamp(28px, 4.5vw, 38px)/1 Montserrat, sans-serif; color: #7C3A12">3</span><span class="mono" style="font-size: 10px; color: #7C3A12; letter-spacing: .1em">BRONZE</span></div></li>
+</ol>
+<div style="height: 10px; border-radius: 0 0 10px 10px; background: linear-gradient(180deg, #E3D9CB, #F4EEE4)"></div>
+</div>
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; background: #111111; color: #FAF8F4; border-radius: 16px; padding: 14px 18px">
+<span>{{ youLine }}</span>
+<button type="button" class="btn btn-gold" onClick="{{ goQuests }}" style="min-height: 40px">Find a quest</button>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start">
+<sc-if value="{{ noRows }}" hint-placeholder-val="{{ false }}"><p class="panel muted" style="flex: 999 1 460px; margin: 0; padding: 24px; text-align: center">Places 4 and below show up here as more people quest.</p></sc-if>
+<sc-if value="{{ hasRows }}" hint-placeholder-val="{{ true }}"><ol start="4" class="panel" style="flex: 999 1 460px; min-width: 0; margin: 0; padding: 0; list-style: none; overflow: hidden">
+<sc-for list="{{ rows }}" as="row" hint-placeholder-count="5">
+<li class="row" style="{{ row.style }}">
+<span style="font: 800 17px Montserrat, sans-serif; width: 22px; text-align: center; color: #6B645B">{{ row.place }}</span>
+<span style="{{ row.avStyle }}">{{ row.initial }}</span>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px">
+<div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap"><strong>{{ row.name }}</strong><sc-if value="{{ row.you }}" hint-placeholder-val="{{ false }}"><span class="chip" style="background: #111111; color: #FFFFFF; padding: 2px 6px">YOU</span></sc-if><span class="chip" style="{{ row.moveStyle }}">{{ row.move }}</span></div>
+<div style="display: flex; align-items: center; gap: 8px"><div class="track" style="flex: 1; max-width: 150px; height: 6px"><div style="{{ row.barStyle }}"></div></div><span class="muted" style="font-size: 12px">{{ row.cards }} cards</span></div>
+</div>
+<img src="{{ row.card }}" alt="{{ row.cardAlt }}" style="width: 36px; height: 36px; object-fit: contain">
+<strong style="font: 800 15px Montserrat, sans-serif; color: #8A6A2F; min-width: 64px; text-align: right">{{ row.gnot }}</strong>
+</li>
+</sc-for>
+</ol></sc-if>
+<div style="flex: 1 1 280px; min-width: 0; display: flex; flex-direction: column; gap: 14px">
+<div style="background: linear-gradient(160deg, #F3EBDD, #FFFFFF); border: 1px solid #E2D2B5; border-radius: 20px; padding: 16px; display: flex; gap: 12px; align-items: center">
+<img src="{{ qotw.art }}" alt="" style="width: 66px; height: 66px; object-fit: contain; flex-shrink: 0">
+<div style="display: flex; flex-direction: column; gap: 5px"><span class="mono" style="font-size: 11px; color: #74572A; letter-spacing: .06em">QUESTER OF THE WEEK</span><strong style="font: 800 21px Montserrat, sans-serif">{{ qotw.name }}</strong><div style="display: flex; flex-wrap: wrap; gap: 5px"><span class="chip" style="background: #FFFFFF; border: 1px solid #E2D2B5">{{ qotw.a }}</span><span class="chip" style="background: #FFFFFF; border: 1px solid #E2D2B5">{{ qotw.b }}</span></div></div>
+</div>
+<form onSubmit="{{ findRank }}" class="panel" style="padding: 16px; display: flex; flex-direction: column; gap: 10px">
+<label class="lbl" for="rankq">Find your rank</label>
+<div style="display: flex; gap: 8px"><input id="rankq" class="field" type="text" placeholder="@name or g1 address" value="{{ query }}" onChange="{{ setQuery }}"><button type="submit" class="btn btn-dark">Search</button></div>
+<sc-if value="{{ hasResult }}" hint-placeholder-val="{{ false }}"><p role="status" style="margin: 0; font-size: 14px; background: #F4EEE4; border-radius: 10px; padding: 10px 12px">{{ result }}</p></sc-if>
+</form>
+<p class="mono muted" style="margin: 0; font-size: 11px">live from the realm · {{ playerCount }} questers</p>
+</div>
+</div>
+</sc-if>
+
+<!-- ================= COLLECTION ================= -->
+<sc-if value="{{ pg.collection }}" hint-placeholder-val="{{ false }}">
+<header><p class="eyebrow">The collection · Season 1</p><h1 class="h1">17 cards to collect</h1><p class="lede">Each quest always drops the same card, so there's no luck and nothing to buy. Cards are numbered and stored in the realm. Tap a card for details.</p></header>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{ cardTabs }}" as="t" hint-placeholder-count="5"><button type="button" class="{{ t.cls }}" onClick="{{ t.pick }}">{{ t.label }}</button></sc-for>
+</div>
+<div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(156px, 1fr))">
+<sc-for list="{{ cards }}" as="k" hint-placeholder-count="8">
+<button type="button" class="{{ k.cls }}" onClick="{{ k.open }}" aria-label="{{ k.aria }}">
+<sc-if value="{{ k.holo }}" hint-placeholder-val="{{ false }}"><span class="{{ k.holoCls }}"></span></sc-if>
+<span class="mqk-r">{{ k.tag }}</span>
+<img class="mqk-i" src="{{ k.img }}" alt="">
+<span class="mqk-n">{{ k.name }}</span>
+<span class="chip" style="{{ k.ownStyle }}">{{ k.ownLabel }}</span>
+</button>
+</sc-for>
+</div>
+</sc-if>
+
+<!-- ================= LEARN ================= -->
+<sc-if value="{{ pg.learn }}" hint-placeholder-val="{{ false }}">
+<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 16px">
+<div><p class="eyebrow" style="color: #8A6A2F">Starter path</p><h1 class="h1">Learn Gno, get paid</h1><p class="lede">Five quests from zero to your first realm. Each unlocks the next. Finish all five for the Epic Realm Builder card.</p></div>
+<div style="min-width: 240px; display: flex; flex-direction: column; gap: 6px"><div style="display: flex; justify-content: space-between; font-size: 14px"><strong>{{ learnDone }} of 5 done</strong><span class="muted">{{ learnLeft }} GNOT left</span></div><div class="track"><div class="mq-bar" style="{{ learnBar }}"></div></div></div>
+</header>
+<ol style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px">
+<sc-for list="{{ steps }}" as="st" hint-placeholder-count="5">
+<li class="panel" style="{{ st.style }}">
+<span style="{{ st.dotStyle }}">{{ st.num }}</span>
+<img src="{{ st.art }}" alt="" style="{{ st.artStyle }}">
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px"><strong style="font: 800 18px Montserrat, sans-serif">{{ st.title }}</strong><span class="muted" style="font-size: 13px">{{ st.status }}</span></div>
+<sc-if value="{{ st.isCurrent }}" hint-placeholder-val="{{ false }}"><button type="button" class="btn btn-gold" onClick="{{ st.open }}">Start</button></sc-if>
+</li>
+</sc-for>
+</ol>
+<div style="display: flex; gap: 16px; align-items: center; padding: 18px; border-radius: 20px; background: #111111; color: #FAF8F4; flex-wrap: wrap">
+<div class="mqk mqk-e" style="width: 110px; flex: none"><span class="mq-holo mq-holo-e"></span><span class="mqk-r">EPIC</span><img class="mqk-i" src="{{ art.builder }}" alt=""><span class="mqk-n" style="font-size: 12px">Realm Builder</span></div>
+<div style="flex: 1; min-width: 200px"><p class="eyebrow" style="color: #C6A66B">Finish the path</p><p style="margin: 4px 0 0; font: 800 22px Montserrat, sans-serif">The rarest starter card</p><p style="margin: 6px 0 0; font-size: 14px; color: #D8CFC2">Only 100 exist. Other Gno apps can check it and give you perks.</p></div>
+</div>
+</sc-if>
+
+<!-- ================= PASSPORT ================= -->
+<sc-if value="{{ pg.passport }}" hint-placeholder-val="{{ false }}">
+<section style="display: flex; flex-wrap: wrap; gap: 18px; align-items: stretch">
+<div style="flex: 1 1 320px; min-width: 0; padding: 22px; border-radius: 22px; background: #111111; color: #FAF8F4; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; justify-content: space-between"><span class="mono" style="font-size: 11px; letter-spacing: .1em; color: #C6A66B">MEQUEST PASSPORT</span><span class="mono" style="font-size: 11px; color: #BFB5A6">Season 1</span></div>
+<div style="display: flex; align-items: center; gap: 14px"><span style="width: 64px; height: 64px; border-radius: 18px; background: #F3EBDD; color: #74572A; display: flex; align-items: center; justify-content: center; font: 800 28px Montserrat, sans-serif">{{ me.initial }}</span><div><p style="margin: 0; font: 800 26px Montserrat, sans-serif">{{ me.display }}</p><p class="mono" style="margin: 0; font-size: 12px; color: #BFB5A6">{{ me.short }} · {{ me.rank }}</p></div></div>
+<div class="grid" style="grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<div style="background: #2B2723; border-radius: 12px; padding: 10px"><span style="font-size: 11px; color: #BFB5A6">Cards</span><br><strong style="font: 800 22px Montserrat, sans-serif">{{ ownedCount }}/17</strong></div>
+<div style="background: #2B2723; border-radius: 12px; padding: 10px"><span style="font-size: 11px; color: #BFB5A6">Rank</span><br><strong style="font: 800 22px Montserrat, sans-serif">#{{ myRank }}</strong></div>
+<div style="background: #2B2723; border-radius: 12px; padding: 10px"><span style="font-size: 11px; color: #BFB5A6">Earned</span><br><strong style="font: 800 22px Montserrat, sans-serif; color: #C6A66B">{{ earned }}</strong></div>
+</div>
+<div class="grid" style="grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<div style="background: #2B2723; border-radius: 12px; padding: 10px"><span style="font-size: 11px; color: #BFB5A6">Streak</span><br><strong style="font: 800 18px Montserrat, sans-serif">{{ me.streak }}</strong></div>
+<div style="background: #2B2723; border-radius: 12px; padding: 10px"><span style="font-size: 11px; color: #BFB5A6">Wallet #</span><br><strong style="font: 800 18px Montserrat, sans-serif">{{ me.joinRank }}</strong></div>
+<div style="background: #2B2723; border-radius: 12px; padding: 10px"><span style="font-size: 11px; color: #BFB5A6">Invites</span><br><strong style="font: 800 18px Montserrat, sans-serif">{{ me.invites }}</strong></div>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px"><button type="button" class="btn btn-gold" onClick="{{ doCheckIn }}" style="flex: 1 1 140px">{{ checkInLabel }}</button><a class="btn btn-ghost" href="{{ shareUrl }}" target="_blank" rel="noopener" style="flex: 1 1 140px">Share passport on X</a></div>
+<button type="button" class="btn btn-ghost" onClick="{{ copyInvite }}" style="background: transparent; color: #C6A66B; border-color: rgba(198,166,107,.4)">{{ inviteLabel }}</button>
+</div>
+<div class="panel" style="flex: 1 1 280px; min-width: 0; padding: 20px; display: flex; flex-direction: column; gap: 10px">
+<h2 class="h2" style="font-size: 18px">Apps can check your badges</h2>
+<code class="term" style="display: block; white-space: pre-wrap; font-size: 12.5px">mequest.HasRarity(addr, mequest.Rare)</code>
+<p class="muted" style="margin: 0; font-size: 13px; line-height: 1.5">Cards live in the realm, not on a website. Our VIP guestbook only opens for Rare+ holders.</p>
+<form onSubmit="{{ vip.submit }}" style="display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 14px; background: #F3EBDD">
+<label class="lbl" for="vipmsg">VIP guestbook · {{ vip.status }}</label>
+<div style="display: flex; gap: 8px"><input id="vipmsg" class="field" type="text" maxlength="140" placeholder="{{ vip.placeholder }}" value="{{ vip.msg }}" onChange="{{ vip.set }}"><button type="submit" class="btn btn-dark">Sign</button></div>
+<sc-for list="{{ vip.list }}" as="ve"><span style="font-size: 13px"><strong>{{ ve.rank }}</strong> {{ ve.who }}: {{ ve.msg }}</span></sc-for>
+</form>
+<div style="display: flex; flex-direction: column; gap: 6px; margin-top: 4px"><div style="display: flex; justify-content: space-between; font-size: 13px"><span>Common set</span><strong>{{ commonOwned }}/8</strong></div><div class="track" style="height: 7px"><div class="mq-bar" style="{{ setBar }}"></div></div><span class="muted" style="font-size: 12px">Collect all 8 Commons to complete the starter row.</span></div>
+</div>
+</section>
+<section style="display: flex; flex-direction: column; gap: 12px">
+<h2 class="h2">Your binder</h2>
+<div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(140px, 1fr))">
+<sc-for list="{{ binder }}" as="k" hint-placeholder-count="8">
+<button type="button" class="{{ k.binderCls }}" onClick="{{ k.open }}" aria-label="{{ k.aria }}">
+<sc-if value="{{ k.holoOwned }}" hint-placeholder-val="{{ false }}"><span class="{{ k.holoCls }}"></span></sc-if>
+<span class="mqk-r">{{ k.tag }}</span>
+<img class="mqk-i" src="{{ k.img }}" alt="">
+<span class="mqk-n">{{ k.name }}</span>
+<span class="chip" style="{{ k.ownStyle }}">{{ k.ownLabel }}</span>
+</button>
+</sc-for>
+</div>
+</section>
+</sc-if>
+
+<!-- ================= CASE FILES ================= -->
+<sc-if value="{{ pg.cases }}" hint-placeholder-val="{{ false }}">
+<header><p class="eyebrow" style="color: #B91C1C">Case files</p><h1 class="h1">Every claim leaves a receipt</h1><p class="lede">Who claimed, which check ran, what it returned, and the block it landed in. Rejections are kept too. Then try to cheat it yourself, with real checks against the live realm.</p></header>
+<section class="panel" style="padding: clamp(18px, 3vw, 28px); display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 12px"><div><p class="eyebrow" style="color: #B91C1C">The cheater test</p><h2 class="h2" style="font-size: 26px; margin-top: 4px">Go on, try to cheat it</h2></div><button type="button" class="btn btn-dark" onClick="{{ runTest }}">{{ runLabel }}</button></div>
+<div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr))">
+<sc-for list="{{ cases3 }}" as="c" hint-placeholder-count="3">
+<div style="display: flex; flex-direction: column; gap: 8px"><div style="display: flex; justify-content: space-between; align-items: center; gap: 8px"><strong style="font-size: 14px">{{ c.who }}</strong><span class="chip" style="{{ c.badgeStyle }}">{{ c.badge }}</span></div>
+<div class="term" style="min-height: 140px; font-size: 12px"><sc-for list="{{ c.lines }}" as="ln" hint-placeholder-count="0"><div class="mq-line" style="{{ ln.style }}">{{ ln.text }}</div></sc-for><sc-if value="{{ c.waiting }}" hint-placeholder-val="{{ true }}"><span style="color: #A79E91">$ ready<span class="mq-cursor">_</span></span></sc-if></div></div>
+</sc-for>
+</div>
+</section>
+<div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(250px, 1fr))">
+<sc-if value="{{ noReceipts }}" hint-placeholder-val="{{ false }}"><p class="panel muted" style="margin: 0; padding: 24px; text-align: center">No receipts yet. The first claim on the realm shows up here.</p></sc-if>
+<sc-for list="{{ receipts }}" as="r" hint-placeholder-count="4">
+<article class="panel" style="{{ r.style }}">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px"><span class="mono muted" style="font-size: 12px">{{ r.id }}</span><span class="chip" style="{{ r.badgeStyle }}">{{ r.result }}</span></div>
+<strong style="font: 800 17px/1.25 Montserrat, sans-serif">{{ r.quest }}</strong>
+<dl style="margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13px"><dt class="muted">Wallet</dt><dd class="mono" style="margin: 0">{{ r.who }}</dd><dt class="muted">Check</dt><dd class="mono" style="margin: 0">{{ r.check }}</dd><dt class="muted">Paid</dt><dd style="margin: 0; font-weight: 600">{{ r.paid }}</dd></dl>
+<span class="mono" style="font-size: 12px; color: #8A6A2F">block {{ r.tx }} · {{ r.ago }}</span>
+</article>
+</sc-for>
+</div>
+</sc-if>
+
+<!-- ================= POST A QUEST ================= -->
+<sc-if value="{{ pg.post }}" hint-placeholder-val="{{ false }}">
+<header><p class="eyebrow">For Gno projects</p><h1 class="h1">Post a quest</h1><p class="lede">Lock GNOT, pick how it's checked, and get users who actually did it. Social claims land in your review queue.</p></header>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{ postTabs }}" as="t" hint-placeholder-count="2"><button type="button" class="{{ t.cls }}" onClick="{{ t.pick }}">{{ t.label }}</button></sc-for>
+</div>
+
+<sc-if value="{{ postNew }}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start">
+<form class="panel" style="flex: 999 1 420px; min-width: 0; padding: 22px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 6px"><label class="lbl" for="ptitle">Quest title</label><input id="ptitle" class="field" type="text" placeholder="e.g. Mint a test token on our app" value="{{ pTitle }}" onChange="{{ setPTitle }}"></div>
+<fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px"><legend class="lbl" style="padding: 0; margin-bottom: 8px">How it gets checked</legend>
+<div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px">
+<sc-for list="{{ kinds }}" as="kd" hint-placeholder-count="3"><button type="button" onClick="{{ kd.pick }}" style="{{ kd.style }}"><strong>{{ kd.label }}</strong><br><span style="font-weight: 400; font-size: 12px">{{ kd.sub }}</span></button></sc-for>
+</div>
+</fieldset>
+<sc-if value="{{ pk.builtin }}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 8px"><span class="lbl">Pick a ready-made check</span><div style="display: flex; flex-wrap: wrap; gap: 8px"><sc-for list="{{ checks }}" as="ch" hint-placeholder-count="5"><button type="button" class="{{ ch.cls }}" onClick="{{ ch.pick }}">{{ ch.label }}</button></sc-for></div></div>
+</sc-if>
+<pre class="term" style="margin: 0; white-space: pre-wrap; font-size: 12.5px">{{ pCode }}</pre>
+<div class="grid" style="grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<div style="display: flex; flex-direction: column; gap: 6px"><label class="lbl" for="preward">Reward each (GNOT)</label><input id="preward" class="field" type="number" min="0" step="0.1" value="{{ pReward }}" onChange="{{ setPReward }}"></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><label class="lbl" for="pslots">Slots</label><input id="pslots" class="field" type="number" min="1" step="1" value="{{ pSlots }}" onChange="{{ setPSlots }}"></div>
+</div>
+<sc-if value="{{ pk.partner }}" hint-placeholder-val="{{ false }}"><div style="display: flex; flex-direction: column; gap: 6px"><label class="lbl" for="ppath">Your partner realm path</label><input id="ppath" class="field" type="text" placeholder="gno.land/r/yourname/yourapp" value="{{ pPath }}" onChange="{{ setPPath }}"></div></sc-if>
+<div style="display: flex; flex-direction: column; gap: 6px"><label class="lbl" for="pdesc">What should players do?</label><input id="pdesc" class="field" type="text" maxlength="400" placeholder="One line of instructions" value="{{ pDesc }}" onChange="{{ setPDesc }}"></div>
+<p class="muted" style="margin: 0; font-size: 12px">Runs {{ pDays }} days · unclaimed GNOT comes back to you · players can claim up to 10 quests a day · {{ pRarityNote }}</p>
+</form>
+<aside style="flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 14px">
+<p class="eyebrow">Live preview</p>
+<div class="qcard" style="cursor: default">
+<span class="chip" style="{{ pPrev.kindStyle }}">{{ pPrev.kindLabel }}</span>
+<span style="font: 800 19px/1.2 Montserrat, sans-serif">{{ pPrev.title }}</span>
+<span class="mono muted" style="font-size: 11px">{{ pPrev.check }}</span>
+<div style="display: flex; justify-content: space-between; align-items: flex-end; padding-top: 10px; border-top: 1px dashed #E3D8C7"><strong style="font: 800 22px Montserrat, sans-serif; color: #8A6A2F">{{ pReward }} GNOT</strong><span class="muted" style="font-size: 13px">{{ pSlots }} slots</span></div>
+<div class="track"><div class="mq-bar" style="width: 3%; background: linear-gradient(90deg, #C6A66B, #A7834A)"></div></div>
+</div>
+<div class="panel" style="padding: 16px; display: flex; justify-content: space-between; align-items: center; gap: 10px"><span style="color: #4A443D">You lock up front</span><strong style="font: 800 24px Montserrat, sans-serif; color: #8A6A2F">{{ pTotal }} GNOT</strong></div>
+<button type="button" class="btn btn-dark" onClick="{{ doPost }}" style="min-height: 54px; font-size: 16px">{{ postLabel }}</button>
+</aside>
+</div>
+</sc-if>
+
+<sc-if value="{{ postReview }}" hint-placeholder-val="{{ false }}">
+<div class="panel" style="overflow: hidden">
+<div class="row" style="justify-content: space-between; border-bottom: 1px solid #F1ECE4; flex-wrap: wrap"><strong>Social claims waiting for you · {{ reviewCount }}</strong><span class="mono muted" style="font-size: 12px">check the post includes the player's code</span></div>
+<sc-if value="{{ reviewEmpty }}" hint-placeholder-val="{{ false }}"><p class="muted" style="margin: 0; padding: 24px; text-align: center">All caught up.</p></sc-if>
+<sc-for list="{{ reviewList }}" as="rv" hint-placeholder-count="3">
+<div class="row" style="border-bottom: 1px solid #F1ECE4; flex-wrap: wrap">
+<span style="width: 38px; height: 38px; border-radius: 50%; background: #F4EEE4; display: flex; align-items: center; justify-content: center; font: 800 15px Montserrat, sans-serif">{{ rv.initial }}</span>
+<div style="flex: 1; min-width: 180px"><strong>{{ rv.who }}</strong> <span class="muted" style="font-size: 13px">· {{ rv.quest }}</span><br><a class="mono" href="{{ rv.href }}" target="_blank" rel="noopener nofollow" style="font-size: 12px; color: #1D4ED8">{{ rv.link }}</a> <span class="chip" style="background: #E8F3EA; color: #166534">look for {{ rv.code }}</span></div>
+<span class="muted" style="font-size: 12px">{{ rv.ago }}</span>
+<button type="button" class="btn btn-green" onClick="{{ rv.approve }}" style="min-height: 40px">Approve</button>
+<button type="button" class="btn btn-red" onClick="{{ rv.reject }}" style="min-height: 40px">Reject</button>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</sc-if>
+
+<footer class="mono muted" style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; padding-top: 18px; border-top: 1px solid rgba(227,216,199,.6); font-size: 11px">
+<span><img src="art/emblem.png" alt="" style="width: 14px; height: 14px; vertical-align: -2px; margin-right: 6px">MeQuest · Gnome Tavern hackathon · independent community project, not run by Gno.land</span>
+<span>testnet only · GNOT here has no real value</span>
+</footer>
+</main>
+</div>
+
+<!-- ================= CARD DETAIL MODAL ================= -->
+<sc-if value="{{ cardOpen }}" hint-placeholder-val="{{ false }}">
+<div role="dialog" aria-modal="true" aria-label="{{ sel.name }} card details" style="position: fixed; inset: 0; z-index: 50; background: rgba(28,26,23,.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 16px">
+<div style="width: 100%; max-width: 760px; max-height: 92vh; overflow-y: auto; background: #FAF8F4; border-radius: 26px; box-shadow: 0 40px 80px rgba(0,0,0,.3); display: flex; flex-wrap: wrap; gap: 22px; padding: clamp(18px, 4vw, 30px); position: relative; box-sizing: border-box">
+<button type="button" onClick="{{ closeCard }}" aria-label="Close card details" style="position: absolute; top: 12px; right: 12px; width: 44px; height: 44px; border-radius: 50%; border: 1px solid #E3D9CB; background: #FFFFFF; cursor: pointer; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+<div style="flex: 1 1 210px; display: flex; justify-content: center"><div class="{{ sel.cls }}" style="width: 210px; flex: none"><sc-if value="{{ sel.holo }}" hint-placeholder-val="{{ false }}"><span class="{{ sel.holoCls }}"></span></sc-if><span class="mqk-r">{{ sel.tag }}</span><img class="mqk-i" src="{{ sel.img }}" alt=""><span class="mqk-n" style="font-size: 18px">{{ sel.name }}</span><span class="mqk-h">{{ sel.owner }}</span></div></div>
+<div style="flex: 999 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+<div><span class="chip" style="{{ sel.chipStyle }}">{{ sel.rarity }}</span> <span class="chip" style="{{ sel.ownStyle }}">{{ sel.ownLabel }}</span><h3 style="margin: 8px 0 4px; font: 800 30px/1.1 Montserrat, sans-serif">{{ sel.name }}</h3><p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4A443D">{{ sel.story }}</p></div>
+<div class="grid" style="grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px"><div class="panel" style="padding: 12px"><span class="mono muted" style="font-size: 10px">REWARD</span><br><strong style="font: 800 20px Montserrat, sans-serif; color: #8A6A2F">{{ sel.reward }} GNOT</strong></div><div class="panel" style="padding: 12px"><span class="mono muted" style="font-size: 10px">MINTED</span><br><strong style="font: 800 20px Montserrat, sans-serif">{{ sel.minted }}</strong> <span class="muted" style="font-size: 13px">/ {{ sel.max }}</span></div></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><div class="track"><div class="mq-bar" style="{{ sel.barStyle }}"></div></div><span style="font-size: 12px; color: #4A443D">{{ sel.leftLabel }}</span></div>
+<sc-if value="{{ sel.own }}" hint-placeholder-val="{{ false }}"><p class="chip" style="margin: 0; align-self: flex-start; background: #E8F3EA; color: #166534; padding: 6px 10px">✓ verified on-chain · {{ sel.proof }}</p></sc-if>
+<div><p class="eyebrow" style="font-size: 11px; margin-bottom: 6px">How to earn</p><strong>{{ sel.how }}</strong></div>
+<sc-if value="{{ sel.hasQuest }}" hint-placeholder-val="{{ false }}"><button type="button" class="btn btn-dark" onClick="{{ sel.go }}" style="align-self: flex-start">Go to the quest</button></sc-if>
+<div><p class="eyebrow" style="font-size: 11px; margin-bottom: 6px">The code that pays it</p><code class="term" style="display: block; white-space: pre-wrap; color: #86EFAC; font-size: 13px">{{ sel.check }}</code></div>
+</div>
+</div>
+</div>
+</sc-if>
+
+<!-- ================= REVEAL MODAL ================= -->
+<sc-if value="{{ revealOpen }}" hint-placeholder-val="{{ false }}">
+<div role="dialog" aria-modal="true" aria-label="New card" style="position: fixed; inset: 0; z-index: 60; background: rgba(28,26,23,.72); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; padding: 16px">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 18px; position: relative">
+<div aria-hidden="true" style="position: absolute; top: -50px; width: 440px; height: 440px; border-radius: 50%; background: radial-gradient(circle, rgba(198,166,107,.5), transparent 65%)"></div>
+<p class="mono" style="position: relative; margin: 0; color: #C6A66B; letter-spacing: .12em; font-size: 13px">NEW CARD · {{ rev.rarityUp }}</p>
+<div class="mq-flip" style="position: relative"><div class="{{ rev.cls }}" style="width: 230px"><sc-if value="{{ rev.holo }}" hint-placeholder-val="{{ false }}"><span class="{{ rev.holoCls }}"></span></sc-if><span class="mqk-r">{{ rev.tag }}</span><img class="mqk-i" src="{{ rev.img }}" alt=""><span class="mqk-n" style="font-size: 20px">{{ rev.name }}</span><span class="mqk-h">{{ rev.owner }}</span></div></div>
+<p style="position: relative; margin: 0; color: #FAF8F4; font-size: 16px">+{{ rev.reward }} GNOT sent to your wallet</p>
+<div style="position: relative; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center"><button type="button" class="btn btn-gold" onClick="{{ revealToPassport }}" style="min-height: 50px">Put it in my binder</button><button type="button" class="btn btn-ghost" onClick="{{ revealClose }}" style="min-height: 50px">Keep questing</button></div>
+</div>
+</div>
+</sc-if>
+</div>
+
+</template>
+<script src="config.js"></script>
+<script src="js/morphdom.min.js"></script>
+<script src="js/runtime.js"></script>
+<script src="js/chain.js"></script>
+<script src="js/logic.js"></script>
+<script>MQ.mount(document.getElementById('root'), document.getElementById('tpl'), MeQuestApp);</script>
+</body>
+</html>
