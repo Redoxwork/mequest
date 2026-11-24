@@ -15,7 +15,12 @@
     const j = await res.json();
     const r = j.result && j.result.response && j.result.response.ResponseBase;
     if (!r) throw new Error('bad RPC response');
-    if (r.Error) throw new Error(unb64(r.Log || '') || 'query failed');
+    if (r.Error) {
+      const log = String(r.Log || '');
+      if (/is not available|package not found/.test(log)) throw new Error('PENDING');
+      const m = log.match(/ - ([^\n]+)/);
+      throw new Error(m ? m[1] : 'query failed');
+    }
     return unb64(r.Data);
   }
 

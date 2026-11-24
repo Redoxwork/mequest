@@ -678,8 +678,8 @@
       const TOAST = { info: ['#111111', '#FAF8F4'], ok: ['#E8F3EA', '#166534'], warn: ['#F3EBDD', '#74572A'], err: ['#FDECEC', '#B91C1C'] };
       const tt = S.toast ? TOAST[S.toast.tone] || TOAST.info : TOAST.info;
       const toast = {
-        show: !!S.toast || !!D.error, text: S.toast ? S.toast.text : 'Can\'t reach the onyx-1 testnet right now (' + D.error + '). Retrying…',
-        style: 'display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 14px; border-radius: 14px; font-size: 14px; font-weight: 600; background: ' + (S.toast ? tt[0] : '#FDECEC') + '; color: ' + (S.toast ? tt[1] : '#B91C1C'),
+        show: !!S.toast || !!D.error, text: S.toast ? S.toast.text : D.error === 'PENDING' ? 'MeQuest is deployed on onyx-1 and waiting for the testnet\'s approval check. Quests appear here the moment it switches on.' : 'Can\'t reach the onyx-1 testnet right now (' + D.error + '). Retrying…',
+        style: 'display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 14px; border-radius: 14px; font-size: 14px; font-weight: 600; background: ' + (S.toast ? tt[0] : D.error === 'PENDING' ? '#F3EBDD' : '#FDECEC') + '; color: ' + (S.toast ? tt[1] : D.error === 'PENDING' ? '#74572A' : '#B91C1C'),
         hasAction: !!(S.toast && S.toast.action), actionLabel: S.toast && S.toast.action ? S.toast.action.label : '',
         action: () => { const a = S.toast && S.toast.action; set({ toast: null }); if (a) a.run(); }, close: () => set({ toast: null })
       };
